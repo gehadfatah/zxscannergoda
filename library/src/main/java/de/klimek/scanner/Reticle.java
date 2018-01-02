@@ -2,6 +2,7 @@ package de.klimek.scanner;
 
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.util.AttributeSet;
@@ -13,7 +14,7 @@ import android.view.View;
 class Reticle extends View {
     private Paint mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private Rect mTargetRect = new Rect();
-    private double mReticleFraction = 1.0;
+    private double mReticleFraction = 2.0;
 
     public Reticle(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -24,7 +25,7 @@ class Reticle extends View {
     }
 
     void setColor(int color) {
-        mPaint.setColor(color);
+        mPaint.setColor(Color.TRANSPARENT);
         mPaint.setAlpha(100);
     }
 

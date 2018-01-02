@@ -30,7 +30,7 @@ public class ScannerView extends FrameLayout {
     // Color of the viewfinder reticle
     private int mReticleColor = Color.GREEN;
     // Activate camera flash when scanning
-    private boolean mUseFlash = true;
+    public boolean mUseFlash = false;
     // Use frontcamera if the backcamera can't focus close enough
     private boolean mAllowFrontCamera = true;
     // Time in milliseconds between scans
@@ -38,6 +38,7 @@ public class ScannerView extends FrameLayout {
 
     private CameraPreview mCameraPreview;
     private Reticle mReticle;
+
 
     private Camera mCamera;
     private int mCameraId;
@@ -57,24 +58,54 @@ public class ScannerView extends FrameLayout {
     public ScannerView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
         loadAttributes(attrs);
-
         inflate(getContext(), R.layout.scanner, this);
         mCameraPreview = (CameraPreview) findViewById(R.id.camera_preview);
         mReticle = (Reticle) findViewById(R.id.reticle);
         mReticle.setSize(mReticleFraction);
         mReticle.setColor(mReticleColor);
-
-        mCameraId = selectCamera(mAllowFrontCamera);
+        mCameraId = 1/*selectCamera(mAllowFrontCamera)*/;
         Camera.getCameraInfo(mCameraId, mCameraInfo);
-
         mDecoder = new Decoder(mDecodeInterval, mReticleFraction);
+    }
+
+    public void setFlashACamera(int mcameraId, boolean mUseFlash) {
+        this.mUseFlash = mUseFlash;
+        this.mCameraId = mcameraId;
+        Camera.getCameraInfo(mCameraId, mCameraInfo);
+        mCameraPreview.setId(mcameraId);
+        if (mCamera != null) {
+            WindowManager windowManager = (WindowManager) getContext()
+                    .getSystemService(Context.WINDOW_SERVICE);
+            Display display = windowManager.getDefaultDisplay();
+            int displayOrientation = getCameraDisplayOrientation(display, mCameraInfo);
+            mCamera.setDisplayOrientation(displayOrientation);
+            mCameraPreview.setId(mcameraId);
+            //Code to destroy SurfacePreview
+            mCameraPreview.surfaceDestroyed(mCameraPreview.getHolder());
+            mCameraPreview.getHolder().removeCallback(mCameraPreview);
+            mCameraPreview.destroyDrawingCache();
+          //  mCameraPreview.removeView(mCameraPreview);
+           // mCamera.stopPreview();
+            mCamera.stopPreview();
+            mCamera.setPreviewCallback(null);
+            mCamera.release();
+
+
+          //  stopScanning();
+            mCameraPreview.startPreview(mCamera, displayOrientation);
+            mDecoder.stopDecoding();
+          //  mDecoder.startDecoding(mCamera, displayOrientation);
+            startScanning();
+
+           // optimizeCameraParams(mCamera, mUseFlash);
+        }
     }
 
     private void loadAttributes(AttributeSet attrSet) {
         TypedArray attrs = getContext().obtainStyledAttributes(attrSet, R.styleable.ScannerView);
         try {
             mReticleFraction = attrs.getFloat(R.styleable.ScannerView_reticle_fraction, mReticleFraction);
-            mUseFlash = attrs.getBoolean(R.styleable.ScannerView_use_flash, mUseFlash);
+            // mUseFlash = attrs.getBoolean(R.styleable.ScannerView_use_flash, mUseFlash);
             mAllowFrontCamera = attrs.getBoolean(R.styleable.ScannerView_allow_frontcamera, mAllowFrontCamera);
             mDecodeInterval = attrs.getInt(R.styleable.ScannerView_decode_interval, mDecodeInterval);
             mReticleColor = attrs.getColor(R.styleable.ScannerView_reticle_color, mReticleColor);
@@ -104,9 +135,7 @@ public class ScannerView extends FrameLayout {
                     }
                 }
             }
-        }
-
-        // use default camera;
+        }// use default camera;
         return 0;
     }
 
@@ -124,6 +153,11 @@ public class ScannerView extends FrameLayout {
             List<String> flashModes = params.getSupportedFlashModes();
             if (flashModes != null && flashModes.contains(Camera.Parameters.FLASH_MODE_TORCH)) {
                 params.setFlashMode(Camera.Parameters.FLASH_MODE_TORCH);
+            }
+        } else {
+            List<String> flashModes = params.getSupportedFlashModes();
+            if (flashModes != null && flashModes.contains(Camera.Parameters.FLASH_MODE_OFF)) {
+                params.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);
             }
         }
 
